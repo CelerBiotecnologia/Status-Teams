@@ -24,15 +24,25 @@ def log_status(user_name, availability, activity):
     now = datetime.now()
     date_str = now.strftime("%d/%m/%Y")
     time_str = now.strftime("%H:%M:%S")
-    file_path = os.path.join(OUTPUT_PATH, f"{user_name.replace(' ', '_')}.csv")
+    file_name = f"{user_name.replace(' ', '_')}.csv"
+    user_file_path = os.path.join(OUTPUT_PATH, file_name)
+    geral_file_path = os.path.join(OUTPUT_PATH, "geral.csv")
 
-    write_header = not os.path.exists(file_path)
-
-    with open(file_path, mode="a", newline="", encoding="utf-8") as f:
+    # Arquivo individual
+    write_header = not os.path.exists(user_file_path)
+    with open(user_file_path, mode="a", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         if write_header:
             writer.writerow(["Data", "Hora", "Disponibilidade", "Atividade"])
         writer.writerow([date_str, time_str, availability, activity])
+
+    # Arquivo geral
+    write_header_geral = not os.path.exists(geral_file_path)
+    with open(geral_file_path, mode="a", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        if write_header_geral:
+            writer.writerow(["Data", "Hora", "Nome", "Disponibilidade", "Atividade"])
+        writer.writerow([date_str, time_str, user_name, availability, activity])
 
 def is_horario_util():
     agora = datetime.now()
