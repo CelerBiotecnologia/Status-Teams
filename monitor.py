@@ -41,7 +41,9 @@ def log_status(user_name, availability, activity):
     time_str = now.strftime("%H:%M:%S")
     file_name = f"{user_name.replace(' ', '_')}.csv"
     user_file_path = os.path.join(OUTPUT_PATH, file_name)
-    geral_file_path = os.path.join(OUTPUT_PATH, "geral.csv")
+    GERAL_PATH = os.getenv("GERAL_PATH", OUTPUT_PATH) #Comentar para salvar em data/geral.csv | Caso não esteja comentado salvará no caminho especificado no .env
+    geral_file_path = os.path.join(GERAL_PATH, "geral.csv")
+
 
     # Arquivo individual
     write_header = not os.path.exists(user_file_path)
