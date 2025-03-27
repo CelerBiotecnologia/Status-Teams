@@ -100,16 +100,7 @@ Data,Hora,Disponibilidade,Atividade
 
 ---
 
-## 🤝 Contribuindo
-
-Sinta-se à vontade para abrir *issues* ou enviar *pull requests* com melhorias. 
-
----
-
 ## 📄 Licença
 
-MIT © [Seu Nome / Organização]
+MIT © [Davi Mendes / Celer Biotecnologia]
 
----
-
-Com ❤️ para quem precisa monitorar a produtividade com responsabilidade e transparência!
