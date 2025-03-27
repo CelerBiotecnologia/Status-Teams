@@ -2,7 +2,7 @@
 import time
 import os
 import csv
-from datetime import datetime
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import json
 from utils.graph_api import get_token, get_presence
@@ -19,6 +19,21 @@ OUTPUT_PATH = os.getenv("OUTPUT_PATH", "data")
 # Garante que o diretório de dados existe
 if not os.path.exists(OUTPUT_PATH):
     os.makedirs(OUTPUT_PATH)
+
+# Controle do token global
+token = None
+token_expiration_time = None
+
+def get_token_with_renewal():
+    global token, token_expiration_time
+
+    if not token or datetime.now() >= token_expiration_time:
+        print(f"[{datetime.now().strftime('%H:%M')}] Gerando novo token...")
+        token_data, expires_in = get_token(TENANT_ID, CLIENT_ID, CLIENT_SECRET)
+        token = token_data
+        token_expiration_time = datetime.now() + timedelta(seconds=expires_in)
+
+    return token
 
 def log_status(user_name, availability, activity):
     now = datetime.now()
@@ -62,7 +77,6 @@ def is_horario_util():
 
 if __name__ == "__main__":
     print("Iniciando monitoramento de status do Teams...")
-    token = get_token(TENANT_ID, CLIENT_ID, CLIENT_SECRET)
 
     em_monitoramento = False
 
@@ -78,6 +92,8 @@ if __name__ == "__main__":
             print(f"[{datetime.now().strftime('%d/%m/%Y - %H:%M')}] Iniciando monitoramento")
             em_monitoramento = True
 
+        token = get_token_with_renewal()
+
         for name, user_id in USERS.items():
             try:
                 presence = get_presence(user_id, token)
@@ -87,7 +103,6 @@ if __name__ == "__main__":
                 print(f"[{datetime.now().strftime('%H:%M:%S')}] {name}: {availability} - {activity}")
             except Exception as e:
                 print(f"Erro ao consultar {name}: {e}")
-        
-        print('==========================================')
 
+        print('==========================================')
         time.sleep(INTERVAL)

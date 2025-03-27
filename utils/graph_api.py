@@ -16,7 +16,8 @@ def get_token(tenant_id, client_id, client_secret):
 
     response = requests.post(url, headers=headers, data=data)
     response.raise_for_status()
-    return response.json().get("access_token")
+    token_data = response.json()
+    return token_data.get("access_token"), token_data.get("expires_in")
 
 
 def get_presence(user_id, token):
