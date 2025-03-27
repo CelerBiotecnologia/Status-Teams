@@ -14,16 +14,17 @@ CLIENT_ID = os.getenv("CLIENT_ID")
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")
 INTERVAL = int(os.getenv("INTERVAL", 60))
 USERS = json.loads(os.getenv("USERS"))
+OUTPUT_PATH = os.getenv("OUTPUT_PATH", "data")
 
 # Garante que o diretório de dados existe
-if not os.path.exists("data"):
-    os.makedirs("data")
+if not os.path.exists(OUTPUT_PATH):
+    os.makedirs(OUTPUT_PATH)
 
 def log_status(user_name, availability, activity):
     now = datetime.now()
     date_str = now.strftime("%d/%m/%Y")
     time_str = now.strftime("%H:%M:%S")
-    file_path = f"data/{user_name.replace(' ', '_')}.csv"
+    file_path = os.path.join(OUTPUT_PATH, f"{user_name.replace(' ', '_')}.csv")
 
     write_header = not os.path.exists(file_path)
 
@@ -33,11 +34,40 @@ def log_status(user_name, availability, activity):
             writer.writerow(["Data", "Hora", "Disponibilidade", "Atividade"])
         writer.writerow([date_str, time_str, availability, activity])
 
+def is_horario_util():
+    agora = datetime.now()
+    dia_semana = agora.weekday()  # 0 = segunda, 6 = domingo
+    hora = agora.hour
+    minuto = agora.minute
+
+    # Se for sábado (5) ou domingo (6), não é horário úil
+    if dia_semana >= 5:
+        return False
+
+    # Horário úil é entre 08:00 e 18:00 (inclusive até 18:00:00)
+    if hora < 8 or (hora >= 18 and minuto > 0):
+        return False
+
+    return True
+
 if __name__ == "__main__":
     print("Iniciando monitoramento de status do Teams...")
     token = get_token(TENANT_ID, CLIENT_ID, CLIENT_SECRET)
 
+    em_monitoramento = False
+
     while True:
+        if not is_horario_util():
+            if em_monitoramento:
+                print(f"[{datetime.now().strftime('%d/%m/%Y - %H:%M')}] Monitoramento pausado")
+                em_monitoramento = False
+            time.sleep(INTERVAL)
+            continue
+
+        if not em_monitoramento:
+            print(f"[{datetime.now().strftime('%d/%m/%Y - %H:%M')}] Iniciando monitoramento")
+            em_monitoramento = True
+
         for name, user_id in USERS.items():
             try:
                 presence = get_presence(user_id, token)
@@ -47,5 +77,7 @@ if __name__ == "__main__":
                 print(f"[{datetime.now().strftime('%H:%M:%S')}] {name}: {availability} - {activity}")
             except Exception as e:
                 print(f"Erro ao consultar {name}: {e}")
+        
+        print('==========================================')
 
         time.sleep(INTERVAL)
