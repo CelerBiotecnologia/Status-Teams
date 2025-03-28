@@ -65,17 +65,9 @@ def is_horario_util():
     agora = datetime.now()
     dia_semana = agora.weekday()  # 0 = segunda, 6 = domingo
     hora = agora.hour
-    minuto = agora.minute
 
-    # Se for sábado (5) ou domingo (6), não é horário úil
-    if dia_semana >= 5:
-        return False
-
-    # Horário úil é entre 08:00 e 18:00 (inclusive até 18:00:00)
-    if hora < 8 or (hora >= 18 and minuto > 0):
-        return False
-
-    return True
+    # Horário útil: segunda a sexta, das 08:00 às 17:59
+    return dia_semana < 5 and 8 <= hora < 18
 
 if __name__ == "__main__":
     print("Iniciando monitoramento de status do Teams...")
