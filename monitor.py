@@ -24,6 +24,9 @@ if not os.path.exists(OUTPUT_PATH):
 token = None
 token_expiration_time = None
 
+# Variável de controle de monitoramento
+erro_alertado = False
+
 def get_token_with_renewal():
     global token, token_expiration_time
 
@@ -41,9 +44,9 @@ def log_status(user_name, availability, activity):
     time_str = now.strftime("%H:%M:%S")
     file_name = f"{user_name.replace(' ', '_')}.csv"
     user_file_path = os.path.join(OUTPUT_PATH, file_name)
-    GERAL_PATH = os.getenv("GERAL_PATH", OUTPUT_PATH) #Comentar para salvar em data/geral.csv | Caso não esteja comentado salvará no caminho especificado no .env
-    geral_file_path = os.path.join(GERAL_PATH, "geral.csv") # Comentar para salvar em data/geral.csv | Caso não esteja comentado salvará no caminho especificado no .env
-    #geral_file_path = os.path.join(OUTPUT_PATH, "geral.csv") # Descomentar para testes locais 
+    #GERAL_PATH = os.getenv("GERAL_PATH", OUTPUT_PATH) #Comentar para salvar em data/geral.csv | Caso não esteja comentado salvará no caminho especificado no .env
+    #geral_file_path = os.path.join(GERAL_PATH, "geral.csv") # Comentar para salvar em data/geral.csv | Caso não esteja comentado salvará no caminho especificado no .env
+    geral_file_path = os.path.join(OUTPUT_PATH, "geral.csv") # Descomentar para testes locais 
 
     # Arquivo individual
     write_header = not os.path.exists(user_file_path)
@@ -98,12 +101,64 @@ while True:
                 activity = presence.get("activity", "Desconhecido")
                 log_status(name, availability, activity)
                 print(f"[{datetime.now().strftime('%H:%M:%S')}] {name}: {availability} - {activity}")
+                
             except Exception as e:
                 print(f"Erro ao consultar {name}: {e}")
 
         print("==========================================")
+        erro_alertado = False
 
     except Exception as e:
         print(f"[ERRO CRÍTICO] Falha ao renovar token ou iniciar monitoramento: {e}")
+
+        if not erro_alertado:
+            try:
+                import smtplib
+                from email.mime.text import MIMEText
+                from email.mime.multipart import MIMEMultipart
+
+                # Dados do e-mail (ambiente)
+                remetente = os.getenv("EMAIL_REMETENTE")
+                senha = os.getenv("EMAIL_SENHA")
+                destinatarios = os.getenv("EMAIL_DESTINATARIO").split(",")
+
+                # Data/hora
+                agora = datetime.now().strftime("%d/%m/%Y - %H:%M:%S")
+
+                # Corpo do e-mail (HTML)
+                html = f"""
+                <html>
+                <body style="background-color:#fff; font-family:Arial, sans-serif; padding:20px;">
+                    <div style="border:3px solid #CB2045; padding:30px; border-radius:10px; background-color:#ffe5e5;">
+                    <h2 style="color:#CB2045;">⚠️ Alerta de Erro no Monitoramento do Teams</h2>
+                    <p style="color:#333; font-size:16px;">
+                        Ocorreu uma <strong>falha geral</strong> ao tentar renovar o token ou iniciar o monitoramento.
+                    </p>
+                    <p style="color:#000;"><strong>Data/Hora:</strong> {agora}</p>
+                    <p style="color:#000;"><strong>Detalhes:</strong> {e}</p>
+                    <p style="color:#B71C1C; font-weight:bold;">O sistema continuará tentando automaticamente, mas verifique as credenciais ou permissões caso o erro persista.</p>
+                    </div>
+                </body>
+                </html>
+                """
+
+                # Montagem do e-mail
+                msg = MIMEMultipart("alternative")
+                msg["Subject"] = "🚨 ERRO no Monitoramento do Teams"
+                msg["From"] = remetente
+                msg["To"] = ", ".join(destinatarios)
+                msg.attach(MIMEText(html, "html"))
+
+                # Envio do e-mail via SMTP
+                with smtplib.SMTP("smtp.office365.com", 587) as server:
+                    server.starttls()
+                    server.login(remetente, senha)
+                    server.sendmail(remetente, destinatarios, msg.as_string())
+
+                print(f"[{agora}] E-mail de alerta enviado com sucesso!")
+                erro_alertado = True  # Marca que já foi enviado
+
+            except Exception as email_error:
+                print(f"[FALHA NO ENVIO DE E-MAIL] {email_error}")
 
     time.sleep(INTERVAL)
