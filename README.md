@@ -89,7 +89,7 @@ python monitor.py
 ## ✉️ Exemplo do e-mail de erro
 Se o monitoramento falhar ao tentar renovar o token ou iniciar o ciclo, o sistema envia um alerta por e-mail:
 
-![Email de Erro](https://via.placeholder.com/600x300.png?text=Exemplo+de+Email+HTML+de+Erro)
+![Exemplo de E-mail de Erro](./docs/email_erro.png)
 
 ### 💡 Layout do e-mail:
 - Título com ícone de alerta
