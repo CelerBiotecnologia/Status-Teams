@@ -42,8 +42,8 @@ def log_status(user_name, availability, activity):
     file_name = f"{user_name.replace(' ', '_')}.csv"
     user_file_path = os.path.join(OUTPUT_PATH, file_name)
     GERAL_PATH = os.getenv("GERAL_PATH", OUTPUT_PATH) #Comentar para salvar em data/geral.csv | Caso não esteja comentado salvará no caminho especificado no .env
-    geral_file_path = os.path.join(GERAL_PATH, "geral.csv")
-
+    geral_file_path = os.path.join(GERAL_PATH, "geral.csv") # Comentar para salvar em data/geral.csv | Caso não esteja comentado salvará no caminho especificado no .env
+    #geral_file_path = os.path.join(OUTPUT_PATH, "geral.csv") # Descomentar para testes locais 
 
     # Arquivo individual
     write_header = not os.path.exists(user_file_path)
@@ -74,18 +74,21 @@ if __name__ == "__main__":
 
     em_monitoramento = False
 
-    while True:
-        if not is_horario_util():
-            if em_monitoramento:
-                print(f"[{datetime.now().strftime('%d/%m/%Y - %H:%M')}] Monitoramento pausado")
-                em_monitoramento = False
-            time.sleep(INTERVAL)
-            continue
+while True:
+    if not is_horario_util():
+        if em_monitoramento:
+            print(f"[{datetime.now().strftime('%d/%m/%Y - %H:%M')}] Monitoramento pausado")
+            em_monitoramento = False
+        else:
+            print(f"[{datetime.now().strftime('%H:%M:%S')}] Aguardando horário útil...")
+        time.sleep(INTERVAL)
+        continue
 
-        if not em_monitoramento:
-            print(f"[{datetime.now().strftime('%d/%m/%Y - %H:%M')}] Iniciando monitoramento")
-            em_monitoramento = True
+    if not em_monitoramento:
+        print(f"[{datetime.now().strftime('%d/%m/%Y - %H:%M')}] Iniciando monitoramento")
+        em_monitoramento = True
 
+    try:
         token = get_token_with_renewal()
 
         for name, user_id in USERS.items():
@@ -98,5 +101,9 @@ if __name__ == "__main__":
             except Exception as e:
                 print(f"Erro ao consultar {name}: {e}")
 
-        print('==========================================')
-        time.sleep(INTERVAL)
+        print("==========================================")
+
+    except Exception as e:
+        print(f"[ERRO CRÍTICO] Falha ao renovar token ou iniciar monitoramento: {e}")
+
+    time.sleep(INTERVAL)
