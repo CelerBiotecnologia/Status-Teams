@@ -77,19 +77,25 @@ if __name__ == "__main__":
 
     em_monitoramento = False
 
+fora_do_horario = False  # Nova flag
+
 while True:
     if not is_horario_util():
         if em_monitoramento:
             print(f"[{datetime.now().strftime('%d/%m/%Y - %H:%M')}] Monitoramento pausado")
             em_monitoramento = False
-        else:
-            print(f"[{datetime.now().strftime('%H:%M:%S')}] Aguardando horário útil...")
+            fora_do_horario = True
+        elif not fora_do_horario:
+            print(f"[{datetime.now().strftime('%d/%m/%Y - %H:%M:%S')}] Aguardando horário útil...")
+            fora_do_horario = True
+
         time.sleep(INTERVAL)
         continue
 
     if not em_monitoramento:
         print(f"[{datetime.now().strftime('%d/%m/%Y - %H:%M')}] Iniciando monitoramento")
         em_monitoramento = True
+        fora_do_horario = False  # Reset da flag ao iniciar novamente
 
     try:
         token = get_token_with_renewal()
@@ -101,12 +107,12 @@ while True:
                 activity = presence.get("activity", "Desconhecido")
                 log_status(name, availability, activity)
                 print(f"[{datetime.now().strftime('%H:%M:%S')}] {name}: {availability} - {activity}")
-                
+                erro_alertado = False
+
             except Exception as e:
                 print(f"Erro ao consultar {name}: {e}")
 
         print("==========================================")
-        erro_alertado = False
 
     except Exception as e:
         print(f"[ERRO CRÍTICO] Falha ao renovar token ou iniciar monitoramento: {e}")
@@ -117,15 +123,12 @@ while True:
                 from email.mime.text import MIMEText
                 from email.mime.multipart import MIMEMultipart
 
-                # Dados do e-mail (ambiente)
                 remetente = os.getenv("EMAIL_REMETENTE")
                 senha = os.getenv("EMAIL_SENHA")
                 destinatarios = os.getenv("EMAIL_DESTINATARIO").split(",")
 
-                # Data/hora
                 agora = datetime.now().strftime("%d/%m/%Y - %H:%M:%S")
 
-                # Corpo do e-mail (HTML)
                 html = f"""
                 <html>
                 <body style="background-color:#fff; font-family:Arial, sans-serif; padding:20px;">
@@ -142,21 +145,19 @@ while True:
                 </html>
                 """
 
-                # Montagem do e-mail
                 msg = MIMEMultipart("alternative")
                 msg["Subject"] = "🚨 ERRO no Monitoramento do Teams"
                 msg["From"] = remetente
                 msg["To"] = ", ".join(destinatarios)
                 msg.attach(MIMEText(html, "html"))
 
-                # Envio do e-mail via SMTP
                 with smtplib.SMTP("smtp.office365.com", 587) as server:
                     server.starttls()
                     server.login(remetente, senha)
                     server.sendmail(remetente, destinatarios, msg.as_string())
 
                 print(f"[{agora}] E-mail de alerta enviado com sucesso!")
-                erro_alertado = True  # Marca que já foi enviado
+                erro_alertado = True
 
             except Exception as email_error:
                 print(f"[FALHA NO ENVIO DE E-MAIL] {email_error}")
